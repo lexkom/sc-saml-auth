@@ -1,0 +1,8 @@
+{
+    "name": "techtonyc/sc-saml-auth",
+    "description": "SAML Authentication for WordPress",
+    "type": "wordpress-plugin",
+    "require": {
+        "onelogin/php-saml": "^4.2"
+    }
+}
