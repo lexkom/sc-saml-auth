@@ -187,7 +187,7 @@ class SAML_Admin {
                     'idp_entity_id' => '',
                     'idp_sso_url' => '',
                     'idp_slo_url' => '',
-                    'idp_x509_cert' => '',
+                    'idp_x509' => '',
                     'allow_user_registration' => 0
                 ),
                 'attributes' => array(

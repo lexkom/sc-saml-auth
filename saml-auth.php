@@ -74,7 +74,9 @@ class SAML_Auth {
      */
     public function activate()
     {
-        flush_rewrite_rules();
+        if ( ! get_option( 'saml_auth_flush_rewrite_rules' ) ) {
+            add_option( 'saml_auth_flush_rewrite_rules', true );
+        }
     }
 
     /**
@@ -88,13 +90,57 @@ class SAML_Auth {
     }
 
     /**
+     * Flush rewrite rules if the previously added flag exists,
+     * and then remove the flag.
+     */
+    function saml_flush_rewrite_rules() {
+        if ( get_option( 'saml_auth_flush_rewrite_rules' ) ) {
+            flush_rewrite_rules();
+            delete_option( 'saml_auth_flush_rewrite_rules' );
+        }
+    }
+
+    /**
      * Get SAML configuration settings
      * 
      * @return array Configuration array for SAML
      */
     private function get_config()
     {
-        return $this->saml_admin->saml_get_settings();
+        $settings = $this->saml_admin->saml_get_option( 'setup' );
+
+        if ( ! $settings )
+            wp_die( '[SAMLAUTH_ERROR] #10 Wrong config' );
+
+        return array(
+            'strict' => true,
+            'debug' => false,
+            'sp' => array(
+                'entityId' => site_url( '/' . static::$SAML_SP_ENTITY_ID . '/' ),
+                'assertionConsumerService' => array(
+                    'url' => site_url( '/' . static::$SAML_ACS_URL . '/' ),
+                ),
+                'singleLogoutService' => array(
+                    'url' => site_url( '/' . static::$SAML_SLS_URL . '/' ),
+                ),
+            ),
+            'idp' => array(
+                'entityId' => $settings[ 'idp_entity_id' ],
+                'singleSignOnService' => array(
+                    'url' => $settings[ 'idp_sso_url' ],
+                    'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+                ),
+                'singleLogoutService' => array(
+                    'url' => $settings[ 'idp_slo_url' ],
+                    'responseUrl' => '',
+                    'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+                ),
+                'x509cert' => $settings[ 'idp_x509' ],
+            ),
+            'security' => array(
+                'nameIdFormat' => \OneLogin\Saml2\Constants::NAMEID_EMAIL_ADDRESS,
+            ),
+        );
     }
 
     /**
@@ -151,6 +197,16 @@ class SAML_Auth {
                 $attributes = apply_filters('saml_auth_attributes', $attributes);
 
                 $email = $auth->getNameId();
+
+                if ( strpos( $email, '@' ) === false ) {
+                    if ( ! empty( $attributes[ 'mail' ][ 0 ] ) ) {
+                        $email = $attributes['mail'][0];
+                    } else if ( ! empty( $attributes[ 'email' ][ 0 ] ) ) {
+                        $email = $attributes['email'][0];
+                    } else if ( ! empty( $attributes[ 'EmailAddress' ][ 0 ] ) ) {
+                        $email = $attributes['EmailAddress'][0];
+                    }
+                }
 
                 $user = get_user_by( 'email', $email );
                 if ( ! $user && ! empty( $optionsSetup[ 'allow_user_registration' ] ) ) {
@@ -233,6 +289,8 @@ class SAML_Auth {
         add_rewrite_rule('^' . static::$SAML_ACS_URL . '/?$', 'index.php?saml_auth_action=acs', 'top');
         add_rewrite_rule('^' . static::$SAML_SLS_URL . '/?$', 'index.php?saml_auth_action=sls', 'top');
         add_rewrite_rule('^' . static::$SAML_METADATA_URL . '/?$', 'index.php?saml_auth_action=metadata', 'top');
+
+        $this->saml_flush_rewrite_rules();
     }
 
     /**
@@ -285,7 +343,7 @@ class SAML_Auth {
         
         $password = wp_generate_password();
         $password = apply_filters('saml_auth_registration_password', $password);
-        
+
         // Create user
         $user_id = wp_create_user( $username, $password, $email );
         
