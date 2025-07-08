@@ -326,27 +326,30 @@ class SAML_Admin {
         if ( $screen->id !== 'toplevel_page_' . $this->page_slug ) return;
         ?>
         <script>
-            document.getElementById( 'check-idp-connection' ).addEventListener( 'click', function () {
-                const resultEl = document.getElementById( 'idp-check-result' );
-                resultEl.textContent = 'Checking...';
+            const chkIdp = document.getElementById( 'check-idp-connection' );
+            if ( chkIdp ) {
+                chkIdp.addEventListener('click', function () {
+                    const resultEl = document.getElementById('idp-check-result');
+                    resultEl.textContent = 'Checking...';
 
-                fetch(ajaxurl + '?action=saml_check_idp_connection', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                    .then( res => res.json() )
-                    .then( data => {
-                        if ( data.success ) {
-                            resultEl.innerHTML = `<span style="color:green;">✅ ${data.data.message}</span>`;
-                        } else {
-                            resultEl.innerHTML = `<span style="color:red;">❌ ${data.data.message}</span>`;
-                        }
+                    fetch(ajaxurl + '?action=saml_check_idp_connection', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {'Content-Type': 'application/json'}
                     })
-                    .catch(err => {
-                        resultEl.innerHTML = `<span style="color:red;">Request error `+err+`</span>`;
-                    });
-            });
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                resultEl.innerHTML = `<span style="color:green;">✅ ${data.data.message}</span>`;
+                            } else {
+                                resultEl.innerHTML = `<span style="color:red;">❌ ${data.data.message}</span>`;
+                            }
+                        })
+                        .catch(err => {
+                            resultEl.innerHTML = `<span style="color:red;">Request error ` + err + `</span>`;
+                        });
+                });
+            }
         </script>
         <?php
     }
