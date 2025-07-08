@@ -21,6 +21,10 @@
     font-weight: bold;
 }
 
+.saml-custom-attribute {
+    margin: 0 0 15px;
+}
+
 .tab-content {
     background-color: #ffffff;
     padding: 10px 20px;
